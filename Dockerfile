@@ -1,12 +1,24 @@
 # Step 1: Build the React app
-# Use an official Node.js image with version 16 as the base image
 FROM node:16 as build
 
-# Set the working directory inside the container to /app
 WORKDIR /app
-
-# Copy the package.json and package-lock.json files into the container's /app directory
 COPY package.json package-lock.json ./
+
+# Install system dependencies required by Electron
+RUN apt-get update && apt-get install -y \
+    libnss3 \
+    libxss1 \
+    libgdk-pixbuf2.0-0 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libnspr4 \
+    libx11-xcb1 \
+    libgbm1 \
+    libnss3-dev \
+    libgtk-3-0 \
+    libx11-6
 
 # Install the project dependencies listed in package.json using npm
 RUN npm install --legacy-peer-deps
@@ -14,18 +26,13 @@ RUN npm install --legacy-peer-deps
 # Copy the rest of the application's source code into the /app directory in the container
 COPY . ./
 
-# Build the React app by running the build script defined in package.json
+# Build the React app
 RUN npm run build
 
 # Step 2: Serve the React app using a simple HTTP server
-# Use an official Nginx image with the Alpine Linux variant as the base image
 FROM nginx:alpine
 
-# Copy the build output from the 'build' stage into the Nginx server's HTML directory
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Expose port 80 to allow HTTP traffic to reach the container
 EXPOSE 80
-
-# Use the default Nginx command to start the server and keep it running in the foreground
 CMD ["nginx", "-g", "daemon off;"]
